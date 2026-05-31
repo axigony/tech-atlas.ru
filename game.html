@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивный атлас бытовой техники — Инженерная база v5.5</title>
+    <style>
+        :root {
+            --bg-main: #0a0c14;
+            --bg-card: #141824;
+            --bg-expanded: #1c2336;
+            --bg-modal: #1e2438;
+            --accent-color: #00f0ff;
+            --accent-glow: rgba(0, 240, 255, 0.2);
+            --text-main: #f1f5f9;
+            --text-muted: #64748b;
+            --border-color: #22293f;
+            --price-color: #38bdf8;
+            --alert-color: #f43f5e;
+            --warn-color: #fbbf24;
+            --success-color: #34d399;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+      body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            overflow-x: hidden;
+            
+            /* --- ОБНОВЛЕННЫЙ ОБЩИЙ ФОН (СДЕЛАЛИ ЯРЧЕ) --- */
+            /* Мы уменьшили прозрачность оверлея (сделали 0.2, 0.65 и 0.8 вместо 0.4, 0.85 и 0.95),
+               благодаря чему фоновая картинка теперь проступает гораздо отчетливее и ярче */
+            background-image: 
+                linear-gradient(to bottom, rgba(10, 12, 20, 0.2) 0%, rgba(10, 12, 20, 0.65) 40%, rgba(10, 12, 20, 0.8) 100%), 
+                url(stars.jpg);
+            background-position: center top;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-attachment: fixed; /* Эффект параллакса при скролле */
+            /* ------------------------------------------- */
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        /* Навигация */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(10, 12, 20, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 40px;
+        }
+
+        .navbar .logo {
+            font-size: 13pt;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-main);
+        }
+
+        .navbar .logo span {
+            color: var(--accent-color);
+            font-size: 8pt;
+            margin-left: 8px;
+            border: 1px solid var(--accent-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 9.5pt;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--accent-color);
+        }
+
+        /* Главный экран с вашей GIF-анимацией на фоне */
+        .hero {
+            min-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 100px 20px 40px 20px;
+            position: relative;
+            
+            /* --- ИСПРАВЛЕНО ДЛЯ ЯРКОСТИ И КАЧЕСТВА --- */
+            /* Мы сделали градиент гораздо прозрачнее (альфа-каналы 0.2 и 0.5 вместо 0.75 и 0.9),
+               чтобы проявить цвета и детали GIF-анимации. */
+            background: 
+                linear-gradient(to bottom, rgba(16, 20, 36, 0.2) 0%, rgba(10, 12, 20, 0.5) 100%), 
+                url(anima.gif) center/cover no-repeat;
+            /* ----------------------------------------- */
+                
+            border-bottom: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+
+        .hero-content {
+            max-width: 800px;
+            z-index: 3;
+            margin-bottom: 40px;
+        }
+
+        .hero h2 {
+            font-size: 26pt;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            color: #e2e8f0;
+            font-size: 12pt;
+            line-height: 1.6;
+        }
+
+        /* Интерактивная карта приборов */
+        .interactive-map-container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(20, 24, 36, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            z-index: 3;
+        }
+
+        .map-title {
+            font-size: 11pt;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .appliance-map {
+            width: 100%;
+            height: auto;
+        }
+
+        .map-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .map-item:hover .item-glow {
+            opacity: 1;
+            fill: url(#cyanGlow);
+        }
+
+        .map-item:hover .item-icon {
+            fill: var(--accent-color);
+            filter: drop-shadow(0px 0px 8px var(--accent-color));
+        }
+
+        .map-item:hover .item-text {
+            fill: var(--text-main);
+            font-weight: bold;
+        }
+
+        .item-glow {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .item-icon {
+            fill: var(--text-muted);
+            transition: fill 0.3s ease, filter 0.3s ease;
+        }
+
+        .item-text {
+            fill: var(--text-muted);
+            font-size: 12px;
+            font-family: sans-serif;
+            transition: fill 0.3s ease;
+        }
+
+        /* Секции и сетка узлов с новым фоновым изображением */
+        .scroll-section {
+            max-width: 1100px;
+            margin: 40px auto; /* Сбалансировали отступы между разделами */
+            padding: 40px 30px;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            
+            /* --- НАСТРОЙКА КРАСИВОГО ФОНА ДЛЯ ПОДРАЗДЕЛОВ --- */
+            /* Накладываем темное затемнение поверх картинки, чтобы текст оставался легко читаемым */
+            background: 
+                linear-gradient(to bottom, rgba(10, 12, 20, 0.92) 0%, rgba(10, 12, 20, 0.85) 100%), 
+                url(atlas.png.png) center/cover no-repeat;
+            
+            /* Скругление краев секции для красивого отделения от общего черного фона */
+            border-radius: 16px; 
+            /* Неоновое свечение по контуру секции в цвет вашего интерфейса */
+            border: 1px solid rgba(0, 240, 255, 0.15); 
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            /* ------------------------------------------------ */
+        }
+
+        .scroll-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-title {
+            font-size: 18pt;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        /* Карточки комплектующих */
+        .fault-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .fault-card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .fault-header {
+            padding: 16px;
+        }
+
+        .fault-symptom {
+            font-size: 11pt;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .fault-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.03);
+            padding-top: 10px;
+        }
+
+        .fault-price {
+            color: var(--price-color);
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 10pt;
+        }
+
+        .chevron {
+            font-size: 9pt;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* МОДАЛЬНОЕ ОКНО */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(5, 6, 10, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-window {
+            background-color: var(--bg-modal);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 750px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-window {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(0,0,0,0.1);
+        }
+
+        .modal-title {
+            font-size: 13pt;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 22pt;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--alert-color);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* Стили для SVG-чертежей деталей */
+        .part-blueprint {
+            width: 100%;
+            max-width: 280px;
+            height: auto;
+            margin: 0 auto 20px auto;
+            display: block;
+            background: rgba(10, 12, 20, 0.6);
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .blueprint-line {
+            stroke: var(--accent-color);
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .blueprint-accent {
+            stroke: var(--price-color);
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .inner-fault-block {
+            background: rgba(10, 12, 20, 0.5);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .inner-fault-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .tech-label {
+            display: inline-block;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 9.5pt;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            margin-top: 8px;
+        }
+        
+        .tech-label:first-child { margin-top: 0; }
+        .label-fault { color: var(--alert-color); border-bottom: 1px dashed rgba(244, 63, 94, 0.2); }
+        .label-symptom { color: var(--warn-color); border-bottom: 1px dashed rgba(251, 191, 36, 0.2); }
+        .label-solution { color: var(--success-color); border-bottom: 1px dashed rgba(52, 211, 153, 0.2); }
+
+        .tech-text {
+            font-size: 10.5pt;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .tech-footer {
+            max-width: 1100px;
+            margin: 40px auto 80px auto;
+            padding: 20px;
+            background-color: rgba(255,255,255,0.01);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            font-size: 9pt;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 12px 20px; }
+            .nav-links { display: none; }
+            .hero h2 { font-size: 18pt; }
+            .scroll-section { padding: 60px 16px; }
+            .components-grid { grid-template-columns: 1fr; }
+            .interactive-map-container { padding: 15px; }
+            .item-text { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">ИНЖЕНЕРНЫЙ АТЛАС<span>VER 5.5</span></div>
+        <ul class="nav-links">
+            <li><a href="#fridge" class="nav-link">Холодильники</a></li>
+            <li><a href="#washer" class="nav-link">Стиральные</a></li>
+            <li><a href="#dishwasher" class="nav-link">Посудомоечные</a></li>
+            <li><a href="#boiler" class="nav-link">Бойлеры</a></li>
+            <li><a href="#coffee" class="nav-link">Кофемашины</a></li>
+            <li><a href="#oven" class="nav-link">Духовки</a></li>
+        </ul>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h2>Интерактивный Атлас Бытовой Техники</h2>
+            <p>Ультимативный справочник: Деталь ➔ Дефекты ➔ Инструкции по ремонту. Кликните по оборудованию ниже для быстрого перехода к узлам.</p>
+        </div>
+
+        <div class="interactive-map-container">
+            <div class="map-title">Интерактивный селектор оборудования</div>
+            <svg class="appliance-map" viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+                    </radialGradient>
+                </defs>
+
+                <g class="map-item" onclick="scrollToSection('fridge')">
+                    <rect class="item-glow" x="20" y="10" width="120" height="180" rx="10"/>
+                    <path class="item-icon" d="M45,25 h70 a5,5 0 0 1 5,5 v50 h-80 v-50 a5,5 0 0 1 5,-5 Z M40,85 h80 v85 a5,5 0 0 1 -5,5 h-70 a5,5 0 0 1 -5,-5 Z M105,50 v15 M105,110 v25"/>
+                    <text class="item-text" x="80" y="195" text-anchor="middle">Холодильники</text>
+                </g>
+
+                <g class="map-item" onclick="scrollToSection('washer')">
+                    <rect class="item-glow" x="165" y="10" width="120" height="180" rx="10"/>
+                    <path class="item-icon" d="M185,30 h80 a5,5 0 0 1 5,5 v130 a5,5 0 0 1 -5,5 h-80 a5,5 0 0 1 -5,-5 v-130 a5,5 0 0 1 5,-5 Z M180,55 h90 M200,42 h10 M250,42 h15"/>
+                    <circle class="item-icon" cx="225" cy="110" r="35" stroke-width="5" fill="none" stroke="currentColor"/>
+                    <text class="item-text" x="225" y="195" text-anchor="middle">Стиральные маш.</text>
+                </g>
+
+                <g class="map-item" onclick="scrollToSection('dishwasher')">
+                    <rect class="item-glow" x="310" y="10" width="120" height="180" rx="10"/>
+                    <path class="item-icon" d="M330,30 h80 a5,5 0 0 1 5,5 v130 a5,5 0 0 1 -5,5 h-80 a5,5 0 0 1 -5,-5 v-130 a5,5 0 0 1 5,-5 Z M330,55 h80 M345,42 h40"/>
+                    <path class="item-icon" d="M345,90 h50 M345,130 h50 M360,75 v15 M380,75 v15 M360,115 v15 M380,115 v15"/>
+                    <text class="item-text" x="370" y="195" text-anchor="middle">Посудомоечные</text>
+                </g>
+
+                <g class="map-item" onclick="scrollToSection('boiler')">
+                    <rect class="item-glow" x="455" y="10" width="120" height="180" rx="10"/>
+                    <path class="item-icon" d="M490,25 h50 a25,25 0 0 1 25,25 v90 a25,25 0 0 1 -25,25 h-50 a25,25 0 0 1 -25,-25 v-90 a25,25 0 0 1 25,-25 Z M505,165 v15 M525,165 v15"/>
+                    <circle class="item-icon" cx="515" cy="95" r="15" fill="none" stroke="currentColor" stroke-width="3"/>
+                    <text class="item-text" x="515" y="195" text-anchor="middle">Водонагреватели</text>
+                </g>
+
+                <g class="map-item" onclick="scrollToSection('coffee')">
+                    <rect class="item-glow" x="600" y="10" width="120" height="180" rx="10"/>
+                    <path class="item-icon" d="M625,30 h60 v30 h-60 Z M625,60 h70 v80 h-10 v25 h-60 Z M645,140 h30 v10 h-30 Z"/>
+                    <path class="item-icon" d="M650,105 h20 v10 h-20 Z M655,115 v10 M665,115 v10"/>
+                    <text class="item-text" x="660" y="195" text-anchor="middle">Кофемашины</text>
+                </g>
+
+                <g class="map-item" onclick="scrollToSection('oven')">
+                    <rect class="item-glow" x="745" y="10" width="120" height="180" rx="10"/>
+                    <path class="item-icon" d="M760,35 h90 a5,5 0 0 1 5,5 v110 a5,5 0 0 1 -5,5 h-90 a5,5 0 0 1 -5,-5 v-110 a5,5 0 0 1 5,-5 Z M755,60 h100 M770,47 r3 M800,47 r3 M830,47 r3"/>
+                    <rect class="item-icon" x="770" y="75" width="70" height="65" rx="3" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <text class="item-text" x="805" y="195" text-anchor="middle">Духовые шкафы</text>
+                </g>
+            </svg>
+        </div>
+    </header>
+
+    <section id="fridge" class="scroll-section">
+        <div class="section-title">❄️ Холодильники</div>
+        <div class="components-grid">
+            <div class="fault-card" onclick="openTechModal('fr-1')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Мотор-компрессор</div>
+                    <div class="fault-meta"><span class="fault-price">~3 800 – 6 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="fr-1">
+                    <div class="modal-title">Мотор-компрессор</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="40" y="40" width="120" height="80" rx="40"/>
+                            <path class="blueprint-line" d="M70,40 C70,25 130,25 130,40 M40,80 h120"/>
+                            <path class="blueprint-accent" d="M30,60 h10 M160,70 h15 c5,0 5,10 15,10 M130,120 v12"/>
+                            <rect class="blueprint-accent" x="45" y="85" width="20" height="25" rx="3"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Межвитковое замыкание обмоток статора или заклинивание поршня.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Мотор не запускается, сильно греется, пускозащитное реле отсекает цепь питания со щелчком через 2 секунды.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Сварочный демонтаж, промывка контура, врезка нового агрегата, смена фильтра-осушителя, вакуумирование и заправка фреоном по весам.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('fr-2')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Датчик температуры (NTC)</div>
+                    <div class="fault-meta"><span class="fault-price">~400 – 950 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="fr-2">
+                    <div class="modal-title">Датчик температуры (NTC)</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="30" y="65" width="70" height="20" rx="5"/>
+                            <path class="blueprint-accent" d="M45,65 v20 M55,65 v20 M85,75 r2"/>
+                            <path class="blueprint-line" d="M100,71 c20,-5 40,5 60,-2 M100,79 c20,-5 40,5 60,-2"/>
+                            <rect class="blueprint-accent" x="160" y="64" width="15" height="16" rx="2"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Потеря герметичности оболочки или деградация полупроводникового кристалла.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Вывод ошибок E1, E2 на табло. Аппарат непрерывно работает и намораживает лед, либо не включается вовсе.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Измерение сопротивления термистора. Срез старого датчика, монтаж нового, изоляция термоусадкой с клеевым слоем.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('fr-3')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ ТЭН оттайки испарителя</div>
+                    <div class="fault-meta"><span class="fault-price">~1 100 – 2 300 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="fr-3">
+                    <div class="modal-title">ТЭН системы оттайки No Frost</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <path class="blueprint-line" d="M30,45 h130 c8,0 12,6 12,15 v30 c0,9 -4,15 -12,15 h-130"/>
+                            <circle class="blueprint-accent" cx="30" cy="45" r="5"/>
+                            <circle class="blueprint-accent" cx="30" cy="120" r="5"/>
+                            <path class="blueprint-accent" d="M15,45 h10 M15,120 h10"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Перегорание внутренней вольфрамовой спирали накала из-за перегрузки.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Каналы забиваются снежной коркой. В морозилке нарастает шуба, а входил. отделении пропадает холод.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Разморозка, демонтаж кожуха испарителя, проверка сопротивления (норма 150-300 Ом) и замена сгоревшего элемента.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('fr-4')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Вентилятор обдува</div>
+                    <div class="fault-meta"><span class="fault-price">~850 – 1 900 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="fr-4">
+                    <div class="modal-title">Вентилятор испарителя</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-accent" cx="100" cy="75" r="14"/>
+                            <circle class="blueprint-line" cx="100" cy="75" r="6"/>
+                            <path class="blueprint-line" d="M100,61 C90,40 110,30 115,20 C120,40 105,55 100,61 Z"/>
+                            <path class="blueprint-line" d="M100,89 C90,110 110,120 115,130 C120,110 105,95 100,89 Z"/>
+                            <path class="blueprint-line" d="M86,75 C65,65 55,85 45,90 C65,95 80,80 86,75 Z"/>
+                            <path class="blueprint-line" d="M114,75 C135,65 145,85 155,90 C135,95 120,80 114,75 Z"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Высыхание смазки втулок, заклинивание крыльчатки намерзшим льдом или сгорание обмотки.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Слышен скрежет, металлический писк или полное отсутствие шума потока воздуха при работающем компрессоре.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Полная разморозка системы, проверка свободного вращения, замена электромотора вентилятора в случае выгорания.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('fr-5')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Пускозащитное реле</div>
+                    <div class="fault-meta"><span class="fault-price">~350 – 800 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="fr-5">
+                    <div class="modal-title">Пускозащитное реле компрессора</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="60" y="40" width="80" height="70" rx="6"/>
+                            <circle class="blueprint-accent" cx="85" cy="65" r="8"/>
+                            <circle class="blueprint-accent" cx="115" cy="65" r="8"/>
+                            <rect class="blueprint-line" x="90" y="110" width="20" height="12"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Разрушение или растрескивание керамического позистора (таблетки) из-за токовых перегрузок.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Компрессор пытается запуститься, гудит 1-3 секунды и отключается с громким металлическим щелчком реле.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Демонтаж реле с выводов компрессора, проверка сопротивления. Установка оригинального реле или универсального аналога.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('fr-6')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Электронный модуль управления</div>
+                    <div class="fault-meta"><span class="fault-price">~2 500 – 5 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="fr-6">
+                    <div class="modal-title">Плата управления (Main PCB)</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="30" y="30" width="140" height="90" rx="3"/>
+                            <rect class="blueprint-accent" x="50" y="55" width="35" height="35" rx="2"/>
+                            <path class="blueprint-accent" d="M45,60 h5 M45,70 h5 M45,80 h5 M90,60 h5 M90,70 h5 M90,80 h5"/>
+                            <rect class="blueprint-line" x="110" y="45" width="30" height="30" rx="4"/>
+                            <circle class="blueprint-accent" cx="125" cy="95" r="10"/>
+                            <circle class="blueprint-accent" cx="150" cy="95" r="7"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Пробой симисторов управления компрессором, выгорание цепи питания из-за скачка сетевого напряжения.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Индикация на дисплее отсутствует, компрессор и вентиляторы не подают признаков жизни, свет в камере может гореть или мигать.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Диагностика цепей блока питания, замена вздувшихся конденсаторов, неисправных реле и перепрошивка памяти при необходимости.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <section id="washer" class="scroll-section">
+        <div class="section-title">🧼 Стиральные машины</div>
+        <div class="components-grid">
+            <div class="fault-card" onclick="openTechModal('wm-1')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Сливной насос (Помпа)</div>
+                    <div class="fault-meta"><span class="fault-price">~850 – 1 800 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="wm-1">
+                    <div class="modal-title">Сливной насос</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="80" cy="75" r="35"/>
+                            <path class="blueprint-line" d="M110,60 h50 v30 h-50"/>
+                            <path class="blueprint-accent" d="M65,75 h30 M80,60 v30"/>
+                            <rect class="blueprint-accent" x="40" y="110" width="80" height="25" rx="3"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Радиальный люфт ротора из-за выработки пластиковых втулок.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Машина останавливается с водой, издает гул, но не сливает. На горячую подклинивает.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Очистка улитки от мусора. При наличии люфта — полная узловая замена моторной части помпы (Askoll).</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('wm-2')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Нагревательный узел (ТЭН)</div>
+                    <div class="fault-meta"><span class="fault-price">~900 – 2 100 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="wm-2">
+                    <div class="modal-title">ТЭН нагрева воды</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-accent" x="35" y="55" width="15" height="40" rx="3"/>
+                            <path class="blueprint-line" d="M50,63 h110 c5,0 8,3 8,7 c0,4 -3,7 -8,7 h-100 c-5,0 -8,3 -8,7 c0,4 3,7 8,7 h100 c5,0 8,3 8,7 c0,4 -3,7 -8,7 h-110"/>
+                            <path class="blueprint-accent" d="M22,63 h13 M22,87 h13 M27,75 h8"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Разрушение внешней оболочки из-за накипи, обрыв нити, утечка тока на корпус.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">СМА зависает на этапе нагрева, стирает в холодной воде. При пробое — мгновенно выбивает УЗО/дифавтомат.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Проверка сопротивления мегаомметром. Извлечение ТЭНа через бак, очистка шлама, установка нового элемента.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('wm-3')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Подшипниковый узел</div>
+                    <div class="fault-meta"><span class="fault-price">~1 800 – 4 000 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="wm-3">
+                    <div class="modal-title">Подшипники бака</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="75" r="50"/>
+                            <circle class="blueprint-line" cx="100" cy="75" r="28"/>
+                            <circle class="blueprint-accent" cx="100" cy="39" r="6"/>
+                            <circle class="blueprint-accent" cx="136" cy="75" r="6"/>
+                            <circle class="blueprint-accent" cx="100" cy="111" r="6"/>
+                            <circle class="blueprint-accent" cx="64" cy="75" r="6"/>
+                            <circle class="blueprint-accent" cx="125" cy="49" r="6"/>
+                            <circle class="blueprint-accent" cx="125" cy="101" r="6"/>
+                            <circle class="blueprint-accent" cx="75" cy="49" r="6"/>
+                            <circle class="blueprint-accent" cx="75" cy="101" r="6"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Коррозия стальных обойм и шариков подшипников после износа и протечки резинового сальника вала.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Гул «взлетающего самолета» на отжиме, сильный люфт барабана, появление ржавых подтеков с тыльной стороны бака.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Полная разборка (распил) бака, выбивание изношенных обойм, запрессовка новых подшипников и обработка сальника влагостойкой смазкой Anderol.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('wm-4')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Устройство блокировки люка (УБЛ)</div>
+                    <div class="fault-meta"><span class="fault-price">~600 – 1 400 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="wm-4">
+                    <div class="modal-title">Замок двери (УБЛ)</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="40" y="45" width="120" height="60" rx="5"/>
+                            <rect class="blueprint-accent" x="60" y="60" width="20" height="30" rx="2"/>
+                            <path class="blueprint-accent" d="M110,75 h30 M110,65 v20 M140,45 v10"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Усталость или разрушение терморезистора (позистора) внутри пластивого корпуса механизма.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Дверца закрывается, но стирка не запускается, мигает индикатор «замок» или выдается ошибка блокировки (например, dE, door).</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Демонтаж манжеты люка, откручивание двух винтов крепления замка, отключение разъема и замена УБЛ на новое.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('wm-5')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Клапан подачи воды (КЭН)</div>
+                    <div class="fault-meta"><span class="fault-price">~450 – 1 100 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="wm-5">
+                    <div class="modal-title">Впускной электромагнитный клапан</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-accent" x="25" y="65" width="25" height="20"/>
+                            <path class="blueprint-accent" d="M25,70 h25 M25,75 h25 M25,80 h25"/>
+                            <rect class="blueprint-line" x="50" y="55" width="55" height="40" rx="4"/>
+                            <rect class="blueprint-line" x="65" y="25" width="26" height="30" rx="2"/>
+                            <path class="blueprint-accent" d="M105,75 h40 v25"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Обрыв обмотки катушки электромагнита или потеря эластичности мембраны клапана.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Вода не поступает в бункер дозатора, выдается ошибка набора воды. Либо вода течет постоянно, даже при выключенной из розетки машине.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Проверка сопротивления катушек (норма ~3.5-4.5 кОм). Очистка сетчатого фильтра, замена клапана в сборе.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('wm-6')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Щетки приводного двигателя</div>
+                    <div class="fault-meta"><span class="fault-price">~400 – 900 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="wm-6">
+                    <div class="modal-title">Угольные щетки мотора</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="40" y="50" width="90" height="20" transform="rotate(15 40 50)"/>
+                            <rect class="blueprint-accent" x="127" y="62" width="30" height="16" transform="rotate(15 40 50)" fill="rgba(56,189,248,0.2)"/>
+                            <path class="blueprint-accent" d="M35,68 c-10,0 -15,10 -20,5 M42,68 h10"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Критический механический износ (длина графитового стержня менее 7-10 мм) из-за трения о коллектор ротора.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Барабан не вращается, хотя слышно щелканье реле на плате. На отжиме видны искры под машиной, выдается код ошибки мотора.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Демонтаж двигателя, извлечение старых щеток из щеткодержателей, очистка коллектора ламелей, установка новых угольков.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <section id="dishwasher" class="scroll-section">
+        <div class="section-title">🍽️ Посудомоечные машины</div>
+        <div class="components-grid">
+            <div class="fault-card" onclick="openTechModal('dw-1')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Циркуляционный тепловой насос</div>
+                    <div class="fault-meta"><span class="fault-price">~4 800 – 8 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="dw-1">
+                    <div class="modal-title">Циркуляционная ТЭН-помпа</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="90" cy="80" r="32"/>
+                            <rect class="blueprint-line" x="110" y="48" width="50" height="64" rx="4"/>
+                            <path class="blueprint-accent" d="M90,48 v-20 M160,80 h20"/>
+                            <rect class="blueprint-accent" x="130" y="112" width="18" height="14"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Выработка втулок ротора, повреждение графитового слоя или перегорание дорожек пленочного нагревателя.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Вода набирается, но мытье не начинается. Слышен тихий гул. На дисплеях Bosch высвечивается код ошибки Е09.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Демонтаж поддона, отсоединение фиксирующих хомутов, узловая замена тепловой помпы в сборе.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('dw-2')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Наливной клапан Аквастоп</div>
+                    <div class="fault-meta"><span class="fault-price">~1 800 – 3 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="dw-2">
+                    <div class="modal-title">Шланг Aquastop</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="55" y="25" width="50" height="80" rx="8"/>
+                            <circle class="blueprint-accent" cx="80" cy="50" r="12"/>
+                            <rect class="blueprint-accent" x="65" y="105" width="30" height="20" rx="2"/>
+                            <path class="blueprint-line" d="M80,25 v-15"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Обрыв обмотки индукционной катушки или заклинивание механического плунжера солями кальция.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Машина сливает воду, но на этапе набора замирает. Загорается индикатор в виде крана, залива нет.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Замер сопротивления (норма 2-4 кОм). При обрыве цепи — замена заливного шланга Aquastop в сборе.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('dw-3')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Датчик протока (Расходомер)</div>
+                    <div class="fault-meta"><span class="fault-price">~450 – 900 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="dw-3">
+                    <div class="modal-title">Счетчик литров (Геркон)</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="75" r="30"/>
+                            <path class="blueprint-line" d="M50,75 h20 M130,75 h20"/>
+                            <path class="blueprint-accent" d="M100,55 v40 M80,75 h40"/>
+                            <rect class="blueprint-accent" x="85" y="115" width="30" height="10" rx="2"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Залипание контактов геркона или механическое разрушение крыльчатки датчика.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">ПММ непрерывно набирает воду, после чего резко сбрасывает её в канализацию и вылетает в ошибку наполнения.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Снятие боковой панели, демонтаж мини-платы с герконом со стенки лабиринта и установка новой детали.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('dw-4')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Переключатель потоков воды</div>
+                    <div class="fault-meta"><span class="fault-price">~1 400 – 2 800 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="dw-4">
+                    <div class="modal-title">Актуатор распределителя</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="65" r="35"/>
+                            <path class="blueprint-accent" d="M85,55 a10,10 0 0 1 15,0 M115,75 a10,10 0 0 1 0,15"/>
+                            <rect class="blueprint-line" x="85" y="110" width="30" height="25" rx="3"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Попадание влаги через изношенный сальник вала на микрик положения, срез зубьев шестеренок редуктора.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Посуда отмывается только на одном уровне (верхнем или нижнем коромысле). Слышны постоянные щелчки снизу.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Замена сервопривода (актуатора) в комплекте с новым герметизирующим резиновым сальником.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('dw-5')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Датчик мутности воды (Aquasensor)</div>
+                    <div class="fault-meta"><span class="fault-price">~700 – 1 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="dw-5">
+                    <div class="modal-title">Оптический датчик мутности</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="40" y="55" width="120" height="40" rx="3"/>
+                            <circle class="blueprint-accent" cx="100" cy="55" r="8"/>
+                            <circle class="blueprint-accent" cx="100" cy="95" r="8"/>
+                            <path class="blueprint-accent" stroke-dasharray="3,3" d="M100,63 v24"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Покрытие стеклянного оптического элемента плотным слоем жира, накипи или выход из строя ИК-диода.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Машина некорректно продлевает время автоматических программ, плохо отмывает посуду или не включает ополаскивание.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Извлечение оптического сенсора из plasticвого стакана зумпфа, очистка или полная замена элемента.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('dw-6')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Сливной насос ПММ</div>
+                    <div class="fault-meta"><span class="fault-price">~750 – 1 600 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="dw-6">
+                    <div class="modal-title">Сливной насос (Помпа слива)</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="110" cy="75" r="25"/>
+                            <path class="blueprint-accent" d="M110,75 l-15,-15 M110,75 l18,-5 M110,75 l-3,18"/>
+                            <rect class="blueprint-line" x="45" y="55" width="40" height="40" rx="3"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Блокировка крыльчатки посторонними предметами, износ втулок, сгорание обмотки катушки.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">ПММ завершает цикл с грязной мыльной водой на дне, выдает ошибку слива (Е24/Е25 на Bosch).</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Снятие защитной крышки крыльчатки в фильтре, удаление осколков посуды. При люфте — замена помпы.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <section id="boiler" class="scroll-section">
+        <div class="section-title">💧 Водонагреватели (Бойлеры)</div>
+        <div class="components-grid">
+            <div class="fault-card" onclick="openTechModal('bl-1')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ ТЭН водяной нагревательный</div>
+                    <div class="fault-meta"><span class="fault-price">~1 100 – 2 600 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="bl-1">
+                    <div class="modal-title">Погружной ТЭН бойлера</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="115" r="30"/>
+                            <path class="blueprint-line" d="M88,115 v-80 c0,-6 4,-10 12,-10 c8,0 12,4 12,10 v80"/>
+                            <path class="blueprint-accent" d="M100,115 v-65"/>
+                            <circle class="blueprint-accent" cx="100" cy="50" r="3"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Разрыв внешней металлической трубки из-за перегрева под слоем накипи, перегорание спирали.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Срабатывает кнопка аварийного выключения УЗО на шнуре питания при попытке включить нагрев.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Слив воды, демонтаж прижимного фланца, очистка бака от накипи, монтаж нового ТЭна с уплотнителем.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('bl-2')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Регулировочный термостат</div>
+                    <div class="fault-meta"><span class="fault-price">~650 – 1 400 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="bl-2">
+                    <div class="modal-title">Капиллярный терморегулятор</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="65" y="75" width="70" height="45" rx="4"/>
+                            <circle class="blueprint-accent" cx="100" cy="98" r="14"/>
+                            <path class="blueprint-accent" d="M100,84 v10"/>
+                            <path class="blueprint-line" d="M100,75 v-55"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Выгорание контактов реле или утечка газа-расширителя из сильфонной капиллярной трубки.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Вода нагревается до кипения и пара (термостат не отключает ТЭН), выбивает аварийную термозащиту.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Извлечение термозонда из паза фланца, отключение клемм питания, установка нового терморегулятора.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('bl-3')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Магниевый анод</div>
+                    <div class="fault-meta"><span class="fault-price">~350 – 700 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="bl-3">
+                    <div class="modal-title">Магниевый анод пассивной защиты</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-accent" x="96" y="115" width="8" height="15" rx="1"/>
+                            <rect class="blueprint-line" x="82" y="25" width="36" height="90" rx="3"/>
+                            <path class="blueprint-accent" stroke-dasharray="2,4" d="M90,40 h20 M88,65 h24 M92,90 h16"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Естественный износ, истончение и химическое растворение магниевого сердечника.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Физически незаметно. Бак начинает быстро ржаветь по сварным швам, ТЭН покрывается жесткой коркой накипи.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Выкручивание остатков стальной шпильки с резьбы фланца ТЭНа, установка нового магниевого стержня.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('bl-4')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Предохранительный клапан избыточного давления</div>
+                    <div class="fault-meta"><span class="fault-price">~400 – 850 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="bl-4">
+                    <div class="modal-title">Сбросной клапан</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <path class="blueprint-line" d="M60,45 h80 v35 h-30 v45 h-20 v-45 h-30 Z"/>
+                            <path class="blueprint-accent" d="M125,45 v-15 h-25"/>
+                            <path class="blueprint-accent" d="M60,62 h-15"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Закисание пружины механизма, засорение седла клапана солями и ржавчиной.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Из дренажного носика постоянно бьет струя воды, либо клапан заклинило намертво, и бак раздувает от давления.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Скручивание старого клапана со штуцера холодной воды, намотка уплотнителя и монтаж нового клапана на 6-8 бар.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('bl-5')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Электронный силовой модуль управления</div>
+                    <div class="fault-meta"><span class="fault-price">~1 900 – 4 200 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="bl-5">
+                    <div class="modal-title">Плата управления электронных бойлеров</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="35" y="35" width="130" height="80" rx="4"/>
+                            <rect class="blueprint-accent" x="50" y="50" width="25" height="25" rx="2"/>
+                            <rect class="blueprint-accent" x="85" y="50" width="25" height="25" rx="2"/>
+                            <circle class="blueprint-line" cx="135" cy="62" r="10"/>
+                            <path class="blueprint-accent" d="M45,100 h110"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Сгорание элементов импульсного блока питания (ШИМ, конденсаторы) при скачках сетевого напряжения.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Дисплей бойлера полностью тусклый, прибор не реагирует на кнопки, нагрев воды отсутствует.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Демонтаж платы, прозвонка диодного моста и цепей питания, перепайка неисправных компонентов или замена модуля.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('bl-6')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Термовыключатель аварийный (Термозащита)</div>
+                    <div class="fault-meta"><span class="fault-price">~450 – 900 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="bl-6">
+                    <div class="modal-title">Аварийный термовыключатель защиты</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="75" r="30"/>
+                            <rect class="blueprint-line" x="65" y="70" width="70" height="10"/>
+                            <circle class="blueprint-accent" cx="100" cy="75" r="6" fill="var(--alert-color)"/>
+                            <rect class="blueprint-accent" x="50" y="65" width="12" height="20"/>
+                            <rect class="blueprint-accent" x="138" y="65" width="12" height="20"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Износ биметаллической пластины, необратимое размыкание внутренних контактов.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Питание на бойлер приходит, лампочки горят, но на контакты ТЭНа напряжение 220V не подается. Кнопка сброса отщелкнута.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Нажатие на кнопку принудительного возврата. Если реле отсекает цепь при нормальной температуре — замена датчика.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <section id="coffee" class="scroll-section">
+        <div class="section-title">☕ Автоматические кофемашины</div>
+        <div class="components-grid">
+            <div class="fault-card" onclick="openTechModal('cm-1')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Кофемолка в сборе (Жернова)</div>
+                    <div class="fault-meta"><span class="fault-price">~3 500 – 4 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="cm-1">
+                    <div class="modal-title">Механизм кофемолки</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <path class="blueprint-line" d="M50,30 h100 l-25,50 h-50 Z"/>
+                            <circle class="blueprint-accent" cx="100" cy="100" r="22"/>
+                            <path class="blueprint-accent" stroke-dasharray="2,2" d="M100,78 v44 M78,100 h44"/>
+                            <rect class="blueprint-line" x="80" y="122" width="40" height="18" rx="2"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Слизывание зубьев шестеренок редуктора, сильный износ или затупление конических жерновов.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Мотор вращается слишком быстро, но зерна не затягивает. Вылетает ошибка "Засыпьте кофейные зерна".</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Разборка корпуса, очистка от прессованного жира. Замена пары жерновов или редуктора двигателя.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('cm-2')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Вибрационная помпа высокого давления</div>
+                    <div class="fault-meta"><span class="fault-price">~1 600 – 2 600 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="cm-2">
+                    <div class="modal-title">Помпа высокого давления</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="70" y="45" width="60" height="50" rx="3"/>
+                            <path class="blueprint-line" d="M130,62 h35 v15 h-35"/>
+                            <path class="blueprint-accent" d="M45,70 h25 M165,70 h15"/>
+                            <rect class="blueprint-accent" x="85" y="28" width="12" height="17"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Износ резинового уплотнительного шарика внутреннего клапана, осадка возвратной пружины.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Звук работы насоса становится тихим и глухим. Кофе не идет из носиков или еле капает без пенки.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Отсоединение трубок высокого давления с уплотнителями, снятие насоса с подушек, установка новой помпы (Ulka EX5).</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('cm-3')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Термоблок проточного нагрева</div>
+                    <div class="fault-meta"><span class="fault-price">~2 400 – 5 000 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="cm-3">
+                    <div class="modal-title">Термоблок (Бойлер)</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="75" r="40" fill="none" stroke-width="4"/>
+                            <circle class="blueprint-accent" cx="80" cy="45" r="6"/>
+                            <circle class="blueprint-accent" cx="120" cy="45" r="6"/>
+                            <rect class="blueprint-accent" x="93" y="105" width="14" height="16" rx="2"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Зарастание кальцием капиллярного внутреннего канала, перегорание ТЭНа на подложке.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Кофе на выходе холодный или теплый. Кофемашина бесконечно долго греется и выдает общую ошибку системы.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Проверка сопротивления ТЭна (~40-60 Ом). При обрыве — замена алюминиевого или стального термоблока.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('cm-4')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Механический дренажный клапан</div>
+                    <div class="fault-meta"><span class="fault-price">~1 200 – 3 200 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="cm-4">
+                    <div class="modal-title">Дренажный клапан заварного блока</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="70" y="40" width="35" height="75" rx="3"/>
+                            <path class="blueprint-accent" d="M105,55 h20 M105,85 h20 M50,65 h20"/>
+                            <path class="blueprint-line" d="M82,45 v45 M88,45 v45" stroke-dasharray="2,2"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Стирание резиновых манжет внутреннего штока, появление трещин в пластиковом корпусе клапана.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Чистая горячая вода или сваренный кофе сливаются напрямую в нижний поддон. Чашка остается пустой.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Разборка редуктора заварного устройства, замена уплотнительных колец из красного силикона или замена клапана.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('cm-5')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Электрический мультиклапан (Дистрибьютор)</div>
+                    <div class="fault-meta"><span class="fault-price">~2 800 – 6 000 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="cm-5">
+                    <div class="modal-title">Керамический распределитель потоков</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="70" r="35"/>
+                            <path class="blueprint-accent" d="M100,35 v-15 M135,70 h15 M100,105 v15 M65,70 h-15"/>
+                            <rect class="blueprint-line" x="115" y="30" width="16" height="10" rx="1"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Износ внутренних керамических дисков, поломка зубьев позиционного микроредуктора распределителя.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Кофемашина не может переключиться на режим пара или выдачи горячей воды. На табло высвечивается "Ошибка 5".</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Снятие дистрибьютора, проверка микриков позиционирования вала. Узловая замена детали в случае поломки шестерен.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('cm-6')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Мотор-редуктор заварного устройства</div>
+                    <div class="fault-meta"><span class="fault-price">~1 900 – 4 100 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="cm-6">
+                    <div class="modal-title">Редуктор привода ЗУ</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="75" cy="75" r="35" stroke-dasharray="4,2"/>
+                            <circle class="blueprint-line" cx="75" cy="75" r="10"/>
+                            <circle class="blueprint-accent" cx="130" cy="75" r="14" stroke-dasharray="2,2"/>
+                            <rect class="blueprint-line" x="116" y="95" width="28" height="35" rx="3"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Сгорание обмотки двигателя постоянного тока (24V) или заклинивание приводного вала.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Внутри раздается натужный гул или треск, заварное устройство заклинивает в верхнем или нижнем положении.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Снятие боковой стенки, извлечение редуктора, очистка старой смазки, замена силового электродвигателя редуктора.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <section id="oven" class="scroll-section">
+        <div class="section-title">🍞 Электрические духовые шкафы</div>
+        <div class="components-grid">
+            <div class="fault-card" onclick="openTechModal('ov-1')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ ТЭНы нагрева (Верхний / Нижний / Гриль)</div>
+                    <div class="fault-meta"><span class="fault-price">~850 – 1 800 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="ov-1">
+                    <div class="modal-title">Нагревательные элементы духовки</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <path class="blueprint-line" d="M40,35 h120 v80 h-120 v-40 h90 v-15 h-90 Z"/>
+                            <rect class="blueprint-accent" x="25" y="45" width="15" height="60" rx="2"/>
+                            <path class="blueprint-accent" d="M15,55 h10 M15,95 h10"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Перегорание внутренней спирали накала из-за истончения нихромовой нити.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Пироги пропекаются неравномерно (низ холодный, верх горит). Нагреватель визуально остается черным.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Замер сопротивления мультиметром (20-50 Ом). Откручивание крепежных винтов со стороны обшивки и замена ТЭНа.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('ov-2')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Переключатель режимов (Селектор)</div>
+                    <div class="fault-meta"><span class="fault-price">~1 100 – 2 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="ov-2">
+                    <div class="modal-title">Пакетный переключатель кулачкового типа</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-accent" x="25" y="68" width="20" height="14" rx="1"/>
+                            <rect class="blueprint-line" x="45" y="40" width="110" height="70" rx="4"/>
+                            <path class="blueprint-accent" d="M60,40 v70 M85,40 v70 M110,40 v70 M135,40 v70"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Выгорание или деформация медных контактных пластин из-за высокой амперной нагрузки.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">При повороте ручки духовки режимы путаются, лампочки мигают, пахнет гарью. Часть функций не включается.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Снятие передней панели управления, последовательный перенос термостойких проводов на новый селектор (Gottak).</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('ov-3')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Мотор конвекции камеры обдува</div>
+                    <div class="fault-meta"><span class="fault-price">~1 400 – 3 200 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="ov-3">
+                    <div class="modal-title">Высокотемпературный конвекционный вентилятор</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <circle class="blueprint-line" cx="100" cy="75" r="45"/>
+                            <circle class="blueprint-line" cx="100" cy="75" r="10"/>
+                            <path class="blueprint-accent" d="M100,30 l-5,15 M145,75 l-15,-5 M100,120 l5,-15 M55,75 l15,5 M132,43 l-12,10 M132,107 l-10,-12 M68,43 l12,10 M68,107 l10,-12"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Коксование или высыхание смазки в бронзовых втулках вала, межвитковый пробой катушки.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Громкий скрежет, металлический свист или гул при работе. Лопасти крыльчатки стоят на месте.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Снятие экрана, откручивание гайки крыльчатки (левая резьба!). Демонтаж мотора сзади шкафа и замена.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('ov-4')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Капиллярный регулировочный термостат</div>
+                    <div class="fault-meta"><span class="fault-price">~950 – 1 900 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="ov-4">
+                    <div class="modal-title">Механический термостат температуры шкафа</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="45" y="65" width="55" height="40" rx="3"/>
+                            <circle class="blueprint-accent" cx="72" cy="85" r="8"/>
+                            <path class="blueprint-line" d="M100,85 c15,-10 25,10 40,0 L165,40"/>
+                            <rect class="blueprint-accent" x="155" y="25" width="25" height="6" rx="1" transform="rotate(45 155 25)"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Появление микротрещины на медной трубке термозонда, утечка термочувствительного газа.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Духовка кочегарит на максимум, превращая еду в уголь, или ТЭНы вообще не запускаются.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Извлечение зонда из клипс внутри камеры, демонтаж блока регулятора за ручкой управления и установка нового термостата.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('ov-5')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Тангенциальный вентилятор обдува корпуса</div>
+                    <div class="fault-meta"><span class="fault-price">~1 800 – 3 900 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="ov-5">
+                    <div class="modal-title">Вентилятор охлаждения электроники и стекол</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="40" y="55" width="95" height="35" rx="2"/>
+                            <path class="blueprint-accent" d="M50,55 v35 M65,55 v35 M80,55 v35 M95,55 v35 M110,55 v35 M125,55 v35"/>
+                            <rect class="blueprint-line" x="135" y="45" width="30" height="55" rx="3"/>
+                            <circle class="blueprint-accent" cx="150" cy="72" r="12"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Деформация уединенной цилиндрической крыльчатки ("беличьего колеса") или выход из строя обмоток двигателя.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Из щели над дверцей духовки перестает дуть воздух. Ручки управления и мебельный профиль сильно раскаляются.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Извлечение духового шкафа из ниши, демонтаж верхней защитной крышки корпуса, замена тангенциального вентилятора.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="fault-card" onclick="openTechModal('ov-6')">
+                <div class="fault-header">
+                    <div class="fault-symptom">⚙️ Электронный программатор (Таймер/Часы)</div>
+                    <div class="fault-meta"><span class="fault-price">~3 200 – 7 500 ₽</span><span class="chevron">ОТКРЫТЬ ➔</span></div>
+                </div>
+                <template id="ov-6">
+                    <div class="modal-title">Электронные часы-таймер духовки</div>
+                    <div class="modal-body">
+                        <svg class="part-blueprint" viewBox="0 0 200 150">
+                            <rect class="blueprint-line" x="40" y="45" width="120" height="55" rx="5"/>
+                            <rect class="blueprint-accent" x="65" y="55" width="45" height="20" rx="2"/>
+                            <path class="blueprint-accent" d="M75,65 h5 M90,65 h5 M82,60 v10"/>
+                            <circle class="blueprint-line" cx="65" cy="88" r="4"/>
+                            <circle class="blueprint-line" cx="88" cy="88" r="4"/>
+                            <circle class="blueprint-line" cx="111" cy="88" r="4"/>
+                            <circle class="blueprint-line" cx="134" cy="88" r="4"/>
+                        </svg>
+                        <div class="inner-fault-block">
+                            <span class="tech-label label-fault">⚠️ Поломка:</span><p class="tech-text">Выгорание реле включения ТЭНов на плате программатора или сбой микроконтроллера управления.</p>
+                            <span class="tech-label label-symptom">🔍 Симптом:</span><p class="tech-text">Экран моргает или горит "0:00", духовой шкаф не реагирует на органы управления и не включает нагреватели.</p>
+                            <span class="tech-label label-solution">🛠️ Решение:</span><p class="tech-text">Проверка силового реле программатора. Перепайка контактов реле или полная замена блока таймера.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <footer class="tech-footer">
+        <strong>Инженерная база данных v5.5 (Интерактивная):</strong> Каждая модальная карточка теперь содержит векторный SVG-чертеж детали. Код полностью автономен и готов к работе.
+    </footer>
+
+    <div class="modal-overlay" id="techModalOverlay" onclick="closeTechModal(event)">
+        <div class="modal-window">
+            <div class="modal-header">
+                <div id="modalTitleContainer" class="modal-title">Инженерная карта компонента</div>
+                <button class="modal-close" onclick="closeTechModal(event, true)">&times;</button>
+            </div>
+            <div id="modalBodyContainer" style="overflow-y: auto;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sections = document.querySelectorAll('.scroll-section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        const observerOptions = { root: null, threshold: 0.1, rootMargin: "-10% 0px -30% 0px" };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    navLinks.forEach(link => {
+                        if (link.getAttribute('href').substring(1) === entry.target.id) {
+                            link.classList.add('active');
+                        } else {
+                            link.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => observer.observe(section));
+
+        function scrollToSection(id) {
+            const target = document.getElementById(id);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        const modalOverlay = document.getElementById('techModalOverlay');
+        const titleContainer = document.getElementById('modalTitleContainer');
+        const bodyContainer = document.getElementById('modalBodyContainer');
+
+        function openTechModal(templateId) {
+            const template = document.getElementById(templateId);
+            if (!template) return;
+
+            const clone = template.content.cloneNode(true);
+            const titleNode = clone.querySelector('.modal-title');
+            const bodyNode = clone.querySelector('.modal-body');
+
+            titleContainer.innerHTML = titleNode ? titleNode.innerHTML : 'Техническая карта дефектации';
+            bodyContainer.innerHTML = '';
+            bodyContainer.appendChild(bodyNode);
+
+            modalOverlay.classList.add('active');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeTechModal(event, forceClose = false) {
+            if (forceClose || event.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                modalOverlay.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        });
+    </script>
+</body>
+</html>
